@@ -3,12 +3,13 @@ Performance logging and monitoring utilities for Beacon.
 """
 
 import logging
-import time
 import threading
+import time
 from contextlib import contextmanager
-from datetime import datetime, UTC
-from typing import Dict, Any, Optional, Callable, List
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any, Callable, Dict, List, Optional
+
 import structlog
 
 from .config import PerformanceConfig
@@ -17,7 +18,7 @@ from .config import PerformanceConfig
 @dataclass
 class PerformanceMetric:
     """Represents a performance metric."""
-    
+
     operation: str
     duration: float
     timestamp: datetime
@@ -25,7 +26,7 @@ class PerformanceMetric:
     user_id: Optional[str] = None
     session_id: Optional[str] = None
     request_id: Optional[str] = None
-    
+
     @property
     def duration_ms(self) -> float:
         """Duration in milliseconds."""
@@ -34,7 +35,7 @@ class PerformanceMetric:
 
 class PerformanceTracker:
     """Tracks and logs performance metrics."""
-    
+
     def __init__(
         self,
         logger: Optional[logging.Logger] = None,
@@ -44,7 +45,7 @@ class PerformanceTracker:
         self.config = config or PerformanceConfig()
         self._metrics: List[PerformanceMetric] = []
         self._lock = threading.Lock()
-    
+
     def log_performance(
         self,
         operation: str,
@@ -55,7 +56,7 @@ class PerformanceTracker:
         request_id: Optional[str] = None,
     ) -> None:
         """Log a performance metric.
-        
+
         Args:
             operation: Name of the operation
             duration: Duration in seconds
@@ -73,15 +74,15 @@ class PerformanceTracker:
             session_id=session_id,
             request_id=request_id,
         )
-        
+
         # Check if we should log based on threshold
         if duration * 1000 >= self.config.threshold_ms:
             self._log_metric(metric)
-        
+
         # Store metric for aggregation
         with self._lock:
             self._metrics.append(metric)
-    
+
     def _log_metric(self, metric: PerformanceMetric) -> None:
         """Log a performance metric."""
         log_data = {
@@ -90,11 +91,11 @@ class PerformanceTracker:
             "duration_seconds": metric.duration,
             "timestamp": metric.timestamp.isoformat(),
         }
-        
+
         # Add context
         if metric.context:
             log_data.update(metric.context)
-        
+
         # Add tracking information
         if metric.user_id:
             log_data["user_id"] = metric.user_id
@@ -102,9 +103,12 @@ class PerformanceTracker:
             log_data["session_id"] = metric.session_id
         if metric.request_id:
             log_data["request_id"] = metric.request_id
-        
-        self.logger.info(f"Performance: {metric.operation} took {metric.duration:.3f}s", extra=log_data)
-    
+
+        self.logger.info(
+            f"Performance: {metric.operation} took {metric.duration:.3f}s",
+            extra=log_data,
+        )
+
     @contextmanager
     def track_operation(
         self,
@@ -115,7 +119,7 @@ class PerformanceTracker:
         request_id: Optional[str] = None,
     ):
         """Context manager for tracking operation performance.
-        
+
         Args:
             operation: Name of the operation
             context: Additional context information
@@ -137,7 +141,7 @@ class PerformanceTracker:
                 session_id=session_id,
                 request_id=request_id,
             )
-    
+
     def get_metrics(
         self,
         operation: Optional[str] = None,
@@ -145,47 +149,47 @@ class PerformanceTracker:
         limit: Optional[int] = None,
     ) -> List[PerformanceMetric]:
         """Get stored performance metrics.
-        
+
         Args:
             operation: Filter by operation name
             since: Filter by timestamp
             limit: Maximum number of metrics to return
-            
+
         Returns:
             List of performance metrics
         """
         with self._lock:
             metrics = self._metrics.copy()
-        
+
         # Apply filters
         if operation:
             metrics = [m for m in metrics if m.operation == operation]
-        
+
         if since:
             metrics = [m for m in metrics if m.timestamp >= since]
-        
+
         # Apply limit
         if limit:
             metrics = metrics[-limit:]
-        
+
         return metrics
-    
+
     def get_statistics(
         self,
         operation: Optional[str] = None,
         since: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Get performance statistics.
-        
+
         Args:
             operation: Filter by operation name
             since: Filter by timestamp
-            
+
         Returns:
             Dictionary with performance statistics
         """
         metrics = self.get_metrics(operation=operation, since=since)
-        
+
         if not metrics:
             return {
                 "count": 0,
@@ -196,23 +200,23 @@ class PerformanceTracker:
                 "p95_duration": 0.0,
                 "p99_duration": 0.0,
             }
-        
+
         durations = [m.duration for m in metrics]
         durations.sort()
-        
+
         count = len(durations)
         total_duration = sum(durations)
         avg_duration = total_duration / count
         min_duration = durations[0]
         max_duration = durations[-1]
-        
+
         # Calculate percentiles
         p95_index = int(count * 0.95)
         p99_index = int(count * 0.99)
-        
+
         p95_duration = durations[p95_index] if p95_index < count else max_duration
         p99_duration = durations[p99_index] if p99_index < count else max_duration
-        
+
         return {
             "count": count,
             "total_duration": total_duration,
@@ -222,7 +226,7 @@ class PerformanceTracker:
             "p95_duration": p95_duration,
             "p99_duration": p99_duration,
         }
-    
+
     def clear_metrics(self) -> None:
         """Clear stored metrics."""
         with self._lock:
@@ -248,7 +252,7 @@ def log_performance(
     **kwargs,
 ) -> None:
     """Log a performance metric using the global tracker.
-    
+
     Args:
         operation: Name of the operation
         duration: Duration in seconds
@@ -266,7 +270,7 @@ def performance_tracker(
     **kwargs,
 ):
     """Context manager for tracking operation performance using the global tracker.
-    
+
     Args:
         operation: Name of the operation
         context: Additional context information
@@ -282,11 +286,11 @@ def setup_performance_logging(
     config: Optional[PerformanceConfig] = None,
 ) -> PerformanceTracker:
     """Setup performance logging.
-    
+
     Args:
         logger: Logger instance to use
         config: Performance configuration
-        
+
     Returns:
         Configured performance tracker
     """

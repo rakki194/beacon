@@ -7,11 +7,12 @@ This module provides the basic logging setup and configuration functions.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 import structlog
 
-from .config import LogConfig, LogLevel, LogFormat
-from .formatters import StructuredFormatter, JSONFormatter
+from .config import LogConfig, LogFormat, LogLevel
+from .formatters import JSONFormatter, StructuredFormatter
 from .handlers import setup_handlers
 
 
@@ -37,10 +38,9 @@ def setup_logger(
         config.level = LogLevel.DEBUG if debug else LogLevel.INFO
         if log_dir:
             from .config import FileHandlerConfig
+
             config.file = FileHandlerConfig(
-                directory=log_dir,
-                filename=log_dir / f"{name}.log",
-                enabled=True
+                directory=log_dir, filename=log_dir / f"{name}.log", enabled=True
             )
 
     logger = logging.getLogger(name)
@@ -63,10 +63,10 @@ def setup_logger(
 
 def get_logger(name: str = None) -> logging.Logger:
     """Get a logger instance.
-    
+
     Args:
         name: Name of the logger. If None, returns the root logger.
-        
+
     Returns:
         Logger instance
     """
@@ -79,7 +79,7 @@ def setup_structured_logging(
     log_format: Optional[str] = None,
 ) -> None:
     """Setup structured logging configuration using structlog.
-    
+
     Args:
         config: Configuration object
         log_level: Override log level from config
@@ -87,19 +87,19 @@ def setup_structured_logging(
     """
     if config is None:
         config = LogConfig()
-    
+
     if log_level:
         config.level = LogLevel(log_level.upper())
     if log_format:
         config.format = LogFormat(log_format)
-    
+
     # Configure standard library logging
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
         level=getattr(logging, config.level.value),
     )
-    
+
     # Configure structlog processors
     processors = [
         structlog.stdlib.filter_by_level,
@@ -111,13 +111,13 @@ def setup_structured_logging(
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
     ]
-    
+
     # Add renderer based on format
     if config.format == LogFormat.JSON:
         processors.append(structlog.processors.JSONRenderer())
     else:
         processors.append(structlog.dev.ConsoleRenderer())
-    
+
     # Configure structlog
     structlog.configure(
         processors=processors,
@@ -130,10 +130,10 @@ def setup_structured_logging(
 
 def get_structured_logger(name: str = None) -> structlog.BoundLogger:
     """Get a structured logger instance.
-    
+
     Args:
         name: Name of the logger
-        
+
     Returns:
         Structured logger instance
     """
@@ -142,33 +142,33 @@ def get_structured_logger(name: str = None) -> structlog.BoundLogger:
 
 def setup_logging_from_dict(config_dict: Dict[str, Any]) -> logging.Logger:
     """Setup logging from a dictionary configuration.
-    
+
     Args:
         config_dict: Dictionary containing logging configuration
-        
+
     Returns:
         Configured logger instance
     """
     config = LogConfig(**config_dict)
     name = config.name or "beacon"
-    
+
     return setup_logger(name, config=config)
 
 
 def setup_logging_from_env() -> logging.Logger:
     """Setup logging from environment variables.
-    
+
     Returns:
         Configured logger instance
     """
     import os
-    
+
     config_dict = {
         "level": os.getenv("BEACON_LOG_LEVEL", "INFO"),
         "format": os.getenv("BEACON_LOG_FORMAT", "text"),
         "name": os.getenv("BEACON_LOG_NAME", "beacon"),
     }
-    
+
     # Handle file logging
     log_dir = os.getenv("BEACON_LOG_DIR")
     if log_dir:
@@ -176,5 +176,5 @@ def setup_logging_from_env() -> logging.Logger:
             "directory": Path(log_dir),
             "enabled": True,
         }
-    
+
     return setup_logging_from_dict(config_dict)

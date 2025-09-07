@@ -3,15 +3,16 @@ Tests for performance logging functionality.
 """
 
 import time
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
 
 from beacon.performance import (
-    PerformanceTracker,
     PerformanceMetric,
+    PerformanceTracker,
+    get_performance_tracker,
     log_performance,
     performance_tracker,
-    get_performance_tracker,
 )
 
 

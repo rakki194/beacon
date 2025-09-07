@@ -8,13 +8,18 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from .config import LogConfig, LogLevel, LogFormat
-from .formatters import StructuredFormatter, JSONFormatter, TextFormatter, ColoredFormatter
+from .config import LogConfig, LogFormat, LogLevel
+from .formatters import (
+    ColoredFormatter,
+    JSONFormatter,
+    StructuredFormatter,
+    TextFormatter,
+)
 
 
 class RotatingFileHandler(logging.handlers.RotatingFileHandler):
     """Enhanced rotating file handler with better configuration."""
-    
+
     def __init__(
         self,
         filename: str,
@@ -27,7 +32,7 @@ class RotatingFileHandler(logging.handlers.RotatingFileHandler):
     ):
         # Ensure directory exists
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        
+
         super().__init__(
             filename=filename,
             maxBytes=max_bytes,
@@ -36,14 +41,14 @@ class RotatingFileHandler(logging.handlers.RotatingFileHandler):
             delay=delay,
             errors=errors,
         )
-        
+
         if formatter:
             self.setFormatter(formatter)
 
 
 class TimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
     """Enhanced timed rotating file handler with better configuration."""
-    
+
     def __init__(
         self,
         filename: str,
@@ -57,7 +62,7 @@ class TimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
     ):
         # Ensure directory exists
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        
+
         super().__init__(
             filename=filename,
             when=when,
@@ -67,14 +72,14 @@ class TimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
             delay=delay,
             errors=errors,
         )
-        
+
         if formatter:
             self.setFormatter(formatter)
 
 
 class ConsoleHandler(logging.StreamHandler):
     """Enhanced console handler with color support."""
-    
+
     def __init__(
         self,
         stream=None,
@@ -83,28 +88,28 @@ class ConsoleHandler(logging.StreamHandler):
     ):
         if stream is None:
             stream = sys.stdout
-        
+
         super().__init__(stream)
-        
+
         if formatter is None and use_colors:
             formatter = ColoredFormatter()
         elif formatter is None:
             formatter = TextFormatter()
-        
+
         self.setFormatter(formatter)
 
 
 def setup_handlers(config: LogConfig) -> List[logging.Handler]:
     """Setup handlers based on configuration.
-    
+
     Args:
         config: Logging configuration
-        
+
     Returns:
         List of configured handlers
     """
     handlers = []
-    
+
     # Console handler
     if config.console.enabled:
         console_handler = ConsoleHandler(
@@ -112,7 +117,7 @@ def setup_handlers(config: LogConfig) -> List[logging.Handler]:
             use_colors=config.console.stream == "stdout",
         )
         console_handler.setLevel(getattr(logging, config.console.level.value))
-        
+
         # Set formatter based on format
         if config.console.format == LogFormat.JSON:
             console_handler.setFormatter(JSONFormatter())
@@ -120,9 +125,9 @@ def setup_handlers(config: LogConfig) -> List[logging.Handler]:
             console_handler.setFormatter(StructuredFormatter())
         else:
             console_handler.setFormatter(TextFormatter())
-        
+
         handlers.append(console_handler)
-    
+
     # File handler
     if config.file and config.file.enabled:
         if config.file.filename:
@@ -130,11 +135,13 @@ def setup_handlers(config: LogConfig) -> List[logging.Handler]:
         elif config.file.directory:
             filename = config.file.directory / f"{config.name or 'beacon'}.log"
         else:
-            raise ValueError("Either filename or directory must be specified for file handler")
-        
+            raise ValueError(
+                "Either filename or directory must be specified for file handler"
+            )
+
         # Create directory if it doesn't exist
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Choose handler type based on configuration
         if config.file.when:
             # Timed rotating handler
@@ -151,9 +158,9 @@ def setup_handlers(config: LogConfig) -> List[logging.Handler]:
                 max_bytes=config.file.max_bytes,
                 backup_count=config.file.backup_count,
             )
-        
+
         file_handler.setLevel(getattr(logging, config.file.level.value))
-        
+
         # Set formatter based on format
         if config.file.format == LogFormat.JSON:
             file_handler.setFormatter(JSONFormatter())
@@ -161,9 +168,9 @@ def setup_handlers(config: LogConfig) -> List[logging.Handler]:
             file_handler.setFormatter(StructuredFormatter())
         else:
             file_handler.setFormatter(TextFormatter())
-        
+
         handlers.append(file_handler)
-    
+
     return handlers
 
 
@@ -173,12 +180,12 @@ def setup_error_handler(
     backup_count: int = 3,
 ) -> logging.Handler:
     """Setup a dedicated error handler.
-    
+
     Args:
         log_dir: Directory for error logs
         max_bytes: Maximum file size before rotation
         backup_count: Number of backup files to keep
-        
+
     Returns:
         Configured error handler
     """
@@ -190,7 +197,7 @@ def setup_error_handler(
     )
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(StructuredFormatter())
-    
+
     return error_handler
 
 
@@ -200,12 +207,12 @@ def setup_performance_handler(
     backup_count: int = 3,
 ) -> logging.Handler:
     """Setup a dedicated performance handler.
-    
+
     Args:
         log_dir: Directory for performance logs
         max_bytes: Maximum file size before rotation
         backup_count: Number of backup files to keep
-        
+
     Returns:
         Configured performance handler
     """
@@ -217,7 +224,7 @@ def setup_performance_handler(
     )
     perf_handler.setLevel(logging.INFO)
     perf_handler.setFormatter(JSONFormatter())
-    
+
     return perf_handler
 
 
@@ -227,12 +234,12 @@ def setup_request_handler(
     backup_count: int = 5,
 ) -> logging.Handler:
     """Setup a dedicated request handler.
-    
+
     Args:
         log_dir: Directory for request logs
         max_bytes: Maximum file size before rotation
         backup_count: Number of backup files to keep
-        
+
     Returns:
         Configured request handler
     """
@@ -244,5 +251,5 @@ def setup_request_handler(
     )
     request_handler.setLevel(logging.INFO)
     request_handler.setFormatter(JSONFormatter())
-    
+
     return request_handler

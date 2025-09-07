@@ -3,7 +3,8 @@ Training event logging utilities for Beacon.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import structlog
 
 from .config import TrainingLoggingConfig
@@ -11,7 +12,7 @@ from .config import TrainingLoggingConfig
 
 class TrainingLogger:
     """Handles training event logging with structured data."""
-    
+
     def __init__(
         self,
         logger: Optional[logging.Logger] = None,
@@ -19,7 +20,7 @@ class TrainingLogger:
     ):
         self.logger = logger or logging.getLogger("training")
         self.config = config or TrainingLoggingConfig()
-    
+
     def log_training_event(
         self,
         session_id: str,
@@ -27,7 +28,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log a training-related event.
-        
+
         Args:
             session_id: Training session identifier
             event_type: Type of training event
@@ -38,9 +39,9 @@ class TrainingLogger:
             "event_type": event_type,
         }
         log_data.update(kwargs)
-        
+
         self.logger.info(f"Training event: {event_type}", extra=log_data)
-    
+
     def log_model_event(
         self,
         model_id: int,
@@ -48,7 +49,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log a model-related event.
-        
+
         Args:
             model_id: Model identifier
             event_type: Type of model event
@@ -59,9 +60,9 @@ class TrainingLogger:
             "event_type": event_type,
         }
         log_data.update(kwargs)
-        
+
         self.logger.info(f"Model event: {event_type}", extra=log_data)
-    
+
     def log_training_start(
         self,
         session_id: str,
@@ -71,7 +72,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log training start event.
-        
+
         Args:
             session_id: Training session identifier
             model_name: Name of the model being trained
@@ -82,17 +83,17 @@ class TrainingLogger:
         event_data = {
             "model_name": model_name,
         }
-        
+
         if self.config.log_hyperparameters and hyperparameters:
             event_data["hyperparameters"] = hyperparameters
-        
+
         if dataset_info:
             event_data["dataset_info"] = dataset_info
-        
+
         event_data.update(kwargs)
-        
+
         self.log_training_event(session_id, "training_start", **event_data)
-    
+
     def log_training_step(
         self,
         session_id: str,
@@ -103,7 +104,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log training step event.
-        
+
         Args:
             session_id: Training session identifier
             step: Current training step
@@ -117,14 +118,14 @@ class TrainingLogger:
             "epoch": epoch,
             "loss": loss,
         }
-        
+
         if self.config.log_metrics and metrics:
             event_data["metrics"] = metrics
-        
+
         event_data.update(kwargs)
-        
+
         self.log_training_event(session_id, "training_step", **event_data)
-    
+
     def log_validation(
         self,
         session_id: str,
@@ -134,7 +135,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log validation event.
-        
+
         Args:
             session_id: Training session identifier
             epoch: Current epoch
@@ -146,14 +147,14 @@ class TrainingLogger:
             "epoch": epoch,
             "validation_loss": validation_loss,
         }
-        
+
         if self.config.log_validation and validation_metrics:
             event_data["validation_metrics"] = validation_metrics
-        
+
         event_data.update(kwargs)
-        
+
         self.log_training_event(session_id, "validation", **event_data)
-    
+
     def log_checkpoint(
         self,
         session_id: str,
@@ -163,7 +164,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log checkpoint save event.
-        
+
         Args:
             session_id: Training session identifier
             checkpoint_path: Path to saved checkpoint
@@ -175,14 +176,14 @@ class TrainingLogger:
             "checkpoint_path": checkpoint_path,
             "epoch": epoch,
         }
-        
+
         if self.config.log_checkpoints and metrics:
             event_data["metrics"] = metrics
-        
+
         event_data.update(kwargs)
-        
+
         self.log_training_event(session_id, "checkpoint_saved", **event_data)
-    
+
     def log_training_end(
         self,
         session_id: str,
@@ -191,7 +192,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log training end event.
-        
+
         Args:
             session_id: Training session identifier
             final_metrics: Final training metrics
@@ -199,17 +200,17 @@ class TrainingLogger:
             **kwargs: Additional context
         """
         event_data = {}
-        
+
         if self.config.log_metrics and final_metrics:
             event_data["final_metrics"] = final_metrics
-        
+
         if training_time:
             event_data["training_time"] = training_time
-        
+
         event_data.update(kwargs)
-        
+
         self.log_training_event(session_id, "training_end", **event_data)
-    
+
     def log_model_save(
         self,
         model_id: int,
@@ -218,7 +219,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log model save event.
-        
+
         Args:
             model_id: Model identifier
             model_path: Path where model was saved
@@ -228,14 +229,14 @@ class TrainingLogger:
         event_data = {
             "model_path": model_path,
         }
-        
+
         if model_info:
             event_data["model_info"] = model_info
-        
+
         event_data.update(kwargs)
-        
+
         self.log_model_event(model_id, "model_saved", **event_data)
-    
+
     def log_model_load(
         self,
         model_id: int,
@@ -243,7 +244,7 @@ class TrainingLogger:
         **kwargs,
     ) -> None:
         """Log model load event.
-        
+
         Args:
             model_id: Model identifier
             model_path: Path from where model was loaded
@@ -253,7 +254,7 @@ class TrainingLogger:
             "model_path": model_path,
         }
         event_data.update(kwargs)
-        
+
         self.log_model_event(model_id, "model_loaded", **event_data)
 
 
@@ -264,9 +265,9 @@ def log_training_event(
     **kwargs: Any,
 ) -> None:
     """Log training-related events.
-    
+
     This function maintains compatibility with the original implementation.
-    
+
     Args:
         logger: Structured logger instance
         session_id: Training session identifier
@@ -288,9 +289,9 @@ def log_model_event(
     **kwargs: Any,
 ) -> None:
     """Log model-related events.
-    
+
     This function maintains compatibility with the original implementation.
-    
+
     Args:
         logger: Structured logger instance
         model_id: Model identifier
@@ -310,11 +311,11 @@ def setup_training_logging(
     config: Optional[TrainingLoggingConfig] = None,
 ) -> TrainingLogger:
     """Setup training logging.
-    
+
     Args:
         logger: Logger instance to use
         config: Training logging configuration
-        
+
     Returns:
         Configured training logger
     """
